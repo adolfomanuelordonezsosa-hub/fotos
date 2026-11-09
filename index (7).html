@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fotos de herramientas</title>
+<style>
+  :root { --tinta:#1b2430; --suave:#667085; --linea:#dfe3e8; --fondo:#f4f5f7; --verde:#147a4b; --rojo:#b42318; --acento:#1d4ed8; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--fondo); color:var(--tinta); font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  button,input,select { font:inherit; }
+  button { cursor:pointer; }
+  [hidden] { display:none !important; }
+  .vista { min-height:100%; }
+  .barra { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px; max-width:760px; margin:auto; }
+  h1 { font-size:21px; margin:0; }
+  .enlace { border:1px solid var(--linea); background:#fff; color:var(--tinta); border-radius:8px; padding:9px 12px; font-size:14px; font-weight:600; white-space:nowrap; }
+  main { max-width:760px; margin:auto; padding:0 16px 32px; }
+  .pestanas { display:grid; grid-template-columns:repeat(3,1fr); background:#e6e9ed; padding:4px; border-radius:10px; gap:4px; margin-bottom:14px; }
+  .pestanas button { border:0; background:none; padding:10px 4px; border-radius:7px; font-weight:600; color:var(--suave); }
+  .pestanas button.activa { background:#fff; color:var(--tinta); box-shadow:0 1px 2px #0002; }
+  .modelo { background:#fff; border:1px solid var(--linea); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .modelo h2 { font-size:16px; margin:0 0 9px; }
+  .estados { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .estado { border:0; color:#fff; min-height:58px; border-radius:8px; font-weight:700; padding:8px; }
+  .estado.buen { background:var(--verde); } .estado.mal { background:var(--rojo); }
+  .estado:disabled { background:#eef0f3; color:#8a93a0; font-weight:600; cursor:default; }
+  .estado small { display:block; font-weight:500; font-size:12px; }
+  .cargando,.vacio { color:var(--suave); padding:30px 0; text-align:center; }
+  .resumen { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+  .chip { font-size:13px; padding:5px 9px; border-radius:99px; font-weight:600; background:#0000000f; }
+  .chip.error { background:var(--rojo); color:#fff; border:0; }
+  #resumenInicio { margin-bottom:12px; }
+
+  #camara { position:fixed; inset:0; background:#000; color:#fff; display:flex; flex-direction:column; }
+  .cam-arriba { padding:calc(env(safe-area-inset-top) + 9px) 10px 9px; display:flex; gap:8px; align-items:center; background:#000; }
+  .volver { background:#ffffff24; color:#fff; border:0; border-radius:8px; height:44px; width:44px; font-size:22px; flex:none; }
+  #selectorCategoria { flex:1; min-width:0; height:44px; border-radius:8px; border:0; padding:0 8px; font-weight:700; background:#fff; color:var(--tinta); }
+  .visor { position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  video { width:100%; height:100%; object-fit:contain; }
+  #flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
+  #flash.on { animation:fl .16s; }
+  @keyframes fl { 0%{opacity:.75} 100%{opacity:0} }
+  #sinCamara { padding:24px; text-align:center; max-width:390px; }
+  #sinCamara p { color:#d0d5dd; margin:0 0 16px; }
+  .grande { display:block; width:100%; background:#fff; color:var(--tinta); border:0; font-weight:700; padding:16px; border-radius:10px; }
+  .cam-estado { position:absolute; left:10px; right:10px; bottom:10px; pointer-events:none; }
+  .cam-estado .chip { background:#000a; color:#fff; pointer-events:auto; }
+  .cam-estado .chip.error { background:var(--rojo); }
+  .cam-abajo { padding:12px 14px calc(env(safe-area-inset-bottom) + 14px); display:grid; grid-template-columns:1fr 84px 1fr; align-items:center; gap:12px; background:#000; }
+  .lado { display:flex; gap:7px; }
+  .lado.der { justify-content:flex-end; }
+  .ctrl { background:#ffffff24; color:#fff; border:0; border-radius:8px; min-height:48px; padding:6px 9px; font-size:13px; font-weight:600; }
+  .ctrl.on { background:#fff; color:#111; }
+  #disparador { width:78px; height:78px; border-radius:50%; background:#fff; border:5px solid #000; outline:3px solid #fff; justify-self:center; }
+  #disparador:active { transform:scale(.92); }
+  #disparador:disabled { opacity:.35; }
+  #aviso { position:fixed; left:50%; top:76px; transform:translateX(-50%); background:#111; color:#fff; padding:9px 14px; border-radius:8px; z-index:9; font-size:14px; width:max-content; max-width:90vw; }
+
+  .tarjeta { background:#fff; border:1px solid var(--linea); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .tarjeta h2 { margin:0 0 10px; font-size:18px; }
+  .fila { border-top:1px solid var(--linea); padding:12px 0; }
+  .fila:first-of-type { border-top:0; padding-top:0; }
+  label { display:block; font-size:13px; font-weight:600; margin:8px 0 3px; color:#3a4452; }
+  input[type=text],input[type=password],input[type=url] { width:100%; padding:11px; border:1px solid #c6ccd4; border-radius:8px; background:#fff; font-size:16px; }
+  .quitar,.agregar { background:none; border:0; color:var(--rojo); padding:8px 0 0; font-weight:600; font-size:14px; }
+  .agregar { color:var(--acento); }
+  .guardar { position:sticky; bottom:0; padding:12px 0; background:linear-gradient(transparent,var(--fondo) 30%); }
+  .primario { width:100%; background:var(--tinta); color:#fff; border:0; padding:15px; border-radius:9px; font-weight:700; }
+  .primario:disabled { opacity:.55; }
+  #mensaje { border-radius:8px; padding:11px; margin-bottom:12px; font-size:14px; white-space:pre-line; }
+  #mensaje.ok { background:#dff5e9; color:#0a5c37; } #mensaje.mal { background:#fde8e6; color:#8f1d13; }
+  @media (orientation:landscape) and (max-height:500px) {
+    #camara { flex-direction:row; }
+    .cam-arriba { flex-direction:column; width:190px; padding:8px; }
+    #selectorCategoria { flex:none; width:100%; }
+    .cam-abajo { display:flex; flex-direction:column; justify-content:space-between; padding:8px 12px; width:116px; }
+  }
+</style>
+</head>
+<body>
+
+<section id="inicio" class="vista">
+  <div class="barra">
+    <h1>Fotos de herramientas</h1>
+    <button class="enlace" id="irEnlaces">Enlazar carpetas</button>
+  </div>
+  <main>
+    <div class="resumen" id="resumenInicio"></div>
+    <div class="pestanas" id="pestanas"></div>
+    <div id="modelos"><div class="cargando">Cargando categorías…</div></div>
+  </main>
+</section>
+
+<section id="camara" hidden>
+  <div class="cam-arriba">
+    <button class="volver" id="salirCamara" aria-label="Volver">‹</button>
+    <select id="selectorCategoria" aria-label="Carpeta de destino"></select>
+  </div>
+  <div class="visor">
+    <video id="video" autoplay playsinline muted hidden></video>
+    <div id="sinCamara" hidden>
+      <p id="textoSinCamara"></p>
+      <button class="grande" id="abrirCamaraTelefono">Abrir cámara del teléfono</button>
+    </div>
+    <div id="flash"></div>
+    <div class="cam-estado"><div class="resumen" id="resumenCamara"></div></div>
+  </div>
+  <div class="cam-abajo">
+    <div class="lado">
+      <button class="ctrl" id="galeria">Galería</button>
+      <button class="ctrl" id="cambiarCamara">Girar</button>
+    </div>
+    <button id="disparador" aria-label="Tomar foto"></button>
+    <div class="lado der">
+      <button class="ctrl" id="rafaga">Ráfaga</button>
+    </div>
+  </div>
+  <input id="entradaCamara" type="file" accept="image/*" capture="environment" hidden>
+  <input id="entradaGaleria" type="file" accept="image/*" multiple hidden>
+</section>
+
+<section id="enlaces" class="vista" hidden>
+  <div class="barra">
+    <h1>Enlazar carpetas</h1>
+    <button class="enlace" id="salirEnlaces">Volver</button>
+  </div>
+  <main>
+    <div id="mensaje" hidden></div>
+    <form id="formPin" class="tarjeta">
+      <label for="pin">Clave</label>
+      <input id="pin" type="password" autocomplete="off" required>
+      <p></p>
+      <button class="primario">Entrar</button>
+    </form>
+    <div id="editor"></div>
+    <div class="guardar" id="zonaGuardar" hidden><button class="primario" id="guardar">Comprobar y guardar</button></div>
+  </main>
+</section>
+
+<section id="pedirApi" class="vista" hidden>
+  <div class="barra"><h1>Conectar con Drive</h1></div>
+  <main>
+    <form id="formApi" class="tarjeta">
+      <label for="api">URL de la aplicación web de Apps Script</label>
+      <input id="api" type="url" placeholder="https://script.google.com/macros/s/.../exec" required>
+      <p></p>
+      <button class="primario">Conectar</button>
+    </form>
+  </main>
+</section>
+
+<div id="aviso" hidden></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const CONCURRENCIA = 3, MAX_INTENTOS = 3, MAX_EN_MEMORIA = 25, LADO_MAX = 2560;
+const enAppsScript = !!(window.google && google.script && google.script.run);
+const params = new URLSearchParams(location.search);
+let urlApi = '';
+try { urlApi = params.get('api') || localStorage.getItem('urlApi') || ''; } catch (e) { urlApi = params.get('api') || ''; }
+
+const S = {
+  categorias: [], tab: null, cat: null, stream: null, facing: 'environment',
+  temporizador: null, pin: '', admin: null, cola: [], activas: 0, enEspera: 0,
+  subidas: 0, fallidas: [], secuencia: 0, porCategoria: {}
+};
+
+async function llamar(fn, ...args) {
+  if (enAppsScript) {
+    return new Promise((ok, mal) => google.script.run.withSuccessHandler(ok).withFailureHandler(mal)[fn](...args));
+  }
+  const r = await fetch(urlApi, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.datos;
+}
+
+function mostrar(id) {
+  ['inicio', 'camara', 'enlaces', 'pedirApi'].forEach(v => $(v).hidden = v !== id);
+  scrollTo(0, 0);
+}
+
+let tAviso;
+function avisar(texto) {
+  $('aviso').textContent = texto; $('aviso').hidden = false;
+  clearTimeout(tAviso); tAviso = setTimeout(() => $('aviso').hidden = true, 2600);
+}
+
+function nodo(tag, props, ...hijos) {
+  const n = Object.assign(document.createElement(tag), props || {});
+  hijos.forEach(h => n.append(h));
+  return n;
+}
+
+function claveCat(c) { return c.herramienta + '|' + c.modelo + '|' + c.estado; }
+function nombreCat(c) {
+  const h = S.categorias.find(x => x.id === c.herramienta);
+  const m = h && h.modelos.find(x => x.id === c.modelo);
+  return h && m ? `${h.nombre} ${m.nombre} · ${c.estado === 'buen' ? 'Buen estado' : 'Mal estado'}` : '';
+}
+
+async function cargar() {
+  try {
+    S.categorias = await llamar('obtenerCategorias');
+    if (!S.tab || !S.categorias.some(h => h.id === S.tab)) S.tab = S.categorias[0].id;
+    pintarInicio();
+  } catch (e) {
+    $('modelos').innerHTML = '';
+    $('modelos').append(nodo('div', { className: 'vacio', textContent: 'No se pudo cargar: ' + (e.message || e) }));
+  }
+}
+
+function pintarInicio() {
+  const tabs = $('pestanas'); tabs.innerHTML = '';
+  S.categorias.forEach(h => tabs.append(nodo('button', {
+    textContent: h.nombre, className: h.id === S.tab ? 'activa' : '',
+    onclick: () => { S.tab = h.id; pintarInicio(); }
+  })));
+  const h = S.categorias.find(x => x.id === S.tab);
+  const lista = $('modelos'); lista.innerHTML = '';
+  if (!h.modelos.length) lista.append(nodo('div', { className: 'vacio', textContent: 'Sin modelos. Agrégalos en Enlazar carpetas.' }));
+  h.modelos.forEach(m => {
+    const boton = (estado, texto) => {
+      const b = nodo('button', { className: 'estado ' + estado, disabled: !m[estado] });
+      b.append(texto);
+      if (!m[estado]) b.append(nodo('small', { textContent: 'Falta enlazar' }));
+      b.onclick = () => abrirCamara({ herramienta: h.id, modelo: m.id, estado });
+      return b;
+    };
+    lista.append(nodo('div', { className: 'modelo' },
+      nodo('h2', { textContent: m.nombre }),
+      nodo('div', { className: 'estados' }, boton('buen', 'Buen estado'), boton('mal', 'Mal estado'))
+    ));
+  });
+}
+
+function pintarSelector() {
+  const sel = $('selectorCategoria'); sel.innerHTML = '';
+  S.categorias.forEach(h => {
+    const grupo = nodo('optgroup', { label: h.nombre });
+    h.modelos.forEach(m => ['buen', 'mal'].forEach(estado => {
+      if (m[estado]) grupo.append(nodo('option', {
+        value: claveCat({ herramienta: h.id, modelo: m.id, estado }),
+        textContent: `${h.nombre} ${m.nombre} · ${estado === 'buen' ? 'Buen estado' : 'Mal estado'}`
+      }));
+    }));
+    if (grupo.children.length) sel.append(grupo);
+  });
+  sel.value = claveCat(S.cat);
+}
+
+$('selectorCategoria').onchange = e => {
+  const [herramienta, modelo, estado] = e.target.value.split('|');
+  S.cat = { herramienta, modelo, estado };
+  pintarResumen();
+  avisar('Ahora guardando en: ' + nombreCat(S.cat));
+};
+
+async function abrirCamara(cat) {
+  S.cat = cat; pintarSelector(); mostrar('camara'); pintarResumen();
+  await iniciarVideo();
+}
+
+async function iniciarVideo() {
+  detenerVideo();
+  const video = $('video');
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('sin API');
+    S.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: S.facing }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false
+    });
+    video.srcObject = S.stream; video.hidden = false; $('sinCamara').hidden = true;
+    await video.play().catch(() => {});
+    modoEnVivo(true);
+  } catch (e) {
+    video.hidden = true; $('sinCamara').hidden = false;
+    $('textoSinCamara').textContent = 'La cámara en vivo no está disponible aquí. Toma las fotos con la cámara del teléfono; cada una se sube sola.';
+    modoEnVivo(false);
+  }
+}
+
+function modoEnVivo(activo) {
+  $('disparador').hidden = !activo; $('rafaga').hidden = !activo; $('cambiarCamara').hidden = !activo;
+}
+
+function detenerVideo() {
+  pararRafaga();
+  if (S.stream) S.stream.getTracks().forEach(t => t.stop());
+  S.stream = null; $('video').srcObject = null;
+}
+
+$('salirCamara').onclick = () => { detenerVideo(); mostrar('inicio'); pintarResumen(); };
+$('cambiarCamara').onclick = () => { S.facing = S.facing === 'environment' ? 'user' : 'environment'; iniciarVideo(); };
+$('abrirCamaraTelefono').onclick = () => $('entradaCamara').click();
+$('galeria').onclick = () => $('entradaGaleria').click();
+
+function enMemoria() { return S.cola.length + S.activas + S.enEspera + S.fallidas.length; }
+
+function sello() {
+  const d = new Date(), p = (n, l = 2) => String(n).padStart(l, '0');
+  S.secuencia++;
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${p(S.secuencia, 4)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function disparar() {
+  const v = $('video');
+  if (!v.videoWidth) return;
+  if (enMemoria() >= MAX_EN_MEMORIA) { avisar('Espera a que suban las fotos pendientes.'); return; }
+  const c = nodo('canvas', { width: v.videoWidth, height: v.videoHeight });
+  c.getContext('2d').drawImage(v, 0, 0);
+  encolar(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+  const f = $('flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+}
+
+$('disparador').onclick = disparar;
+$('flash').onanimationend = e => e.target.classList.remove('on');
+
+function pararRafaga() {
+  clearInterval(S.temporizador); S.temporizador = null; $('rafaga').classList.remove('on'); $('rafaga').textContent = 'Ráfaga';
+}
+$('rafaga').onclick = () => {
+  if (S.temporizador) return pararRafaga();
+  S.temporizador = setInterval(disparar, 1000);
+  $('rafaga').classList.add('on'); $('rafaga').textContent = 'Detener';
+  disparar();
+};
+
+async function archivosAFotos(archivos, input) {
+  const lista = [...archivos]; input.value = '';
+  for (const archivo of lista) {
+    while (enMemoria() >= MAX_EN_MEMORIA) await new Promise(r => setTimeout(r, 400));
+    try { encolar(await comprimir(archivo)); }
+    catch (e) { avisar('No se pudo leer ' + archivo.name); }
+  }
+}
+function comprimir(archivo) {
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(archivo), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, LADO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = nodo('canvas', { width: Math.round(img.naturalWidth * k), height: Math.round(img.naturalHeight * k) });
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('imagen')); };
+    img.src = url;
+  });
+}
+$('entradaCamara').onchange = e => archivosAFotos(e.target.files, e.target);
+$('entradaGaleria').onchange = e => archivosAFotos(e.target.files, e.target);
+
+function encolar(b64) {
+  // La categoría se fija al momento de tomar la foto.
+  const item = { ...S.cat, b64, sello: sello(), intentos: 0 };
+  const k = claveCat(S.cat);
+  S.porCategoria[k] = (S.porCategoria[k] || 0) + 1;
+  S.cola.push(item); bombear(); pintarResumen();
+}
+
+function bombear() {
+  while (S.activas < CONCURRENCIA && S.cola.length) subir(S.cola.shift());
+}
+
+async function subir(item) {
+  S.activas++; pintarResumen();
+  try {
+    await llamar('subirFoto', { herramienta: item.herramienta, modelo: item.modelo, estado: item.estado, b64: item.b64, sello: item.sello });
+    S.activas--; S.subidas++;
+  } catch (e) {
+    S.activas--;
+    item.intentos++; item.error = e.message || String(e);
+    if (item.intentos < MAX_INTENTOS) {
+      S.enEspera++;
+      setTimeout(() => { S.enEspera--; S.cola.push(item); bombear(); pintarResumen(); }, 1500 * item.intentos);
+    } else {
+      S.fallidas.push(item);
+    }
+  }
+  bombear(); pintarResumen();
+}
+
+function reintentar() {
+  S.fallidas.splice(0).forEach(i => { i.intentos = 0; S.cola.push(i); });
+  bombear(); pintarResumen();
+}
+
+function pintarResumen() {
+  const pendientes = S.cola.length + S.activas + S.enEspera;
+  [['resumenInicio', false], ['resumenCamara', true]].forEach(([id, enCamara]) => {
+    const r = $(id); r.innerHTML = '';
+    if (enCamara && S.cat) r.append(nodo('span', { className: 'chip', textContent: `En esta carpeta: ${S.porCategoria[claveCat(S.cat)] || 0}` }));
+    if (S.subidas) r.append(nodo('span', { className: 'chip', textContent: `Subidas: ${S.subidas}` }));
+    if (pendientes) r.append(nodo('span', { className: 'chip', textContent: `Subiendo: ${pendientes}` }));
+    if (S.fallidas.length) r.append(nodo('button', {
+      className: 'chip error', textContent: `Fallaron ${S.fallidas.length} · Reintentar`,
+      title: S.fallidas[0].error, onclick: () => { avisar(S.fallidas[0].error); reintentar(); }
+    }));
+  });
+}
+
+addEventListener('beforeunload', e => { if (enMemoria()) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---- Enlazar carpetas ----
+$('irEnlaces').onclick = () => {
+  mostrar('enlaces'); msj('');
+  $('formPin').hidden = !!S.admin;
+  if (S.admin) pintarEditor();
+};
+$('salirEnlaces').onclick = async () => { mostrar('inicio'); await cargar(); };
+
+function msj(texto, tipo) {
+  const m = $('mensaje'); m.hidden = !texto; m.textContent = texto; m.className = tipo || '';
+  if (texto) scrollTo(0, 0);
+}
+
+$('formPin').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    S.pin = $('pin').value;
+    S.admin = await llamar('obtenerAdmin', S.pin);
+    $('formPin').hidden = true; msj(''); pintarEditor();
+  } catch (err) { msj(err.message || String(err), 'mal'); }
+};
+
+function campoEnlace(modelo, estado, etiqueta) {
+  const id = 'c' + Math.random().toString(36).slice(2);
+  return nodo('div', null,
+    nodo('label', { htmlFor: id, textContent: etiqueta }),
+    nodo('input', { id, type: 'url', value: modelo[estado], placeholder: 'Pega el enlace de la carpeta', inputMode: 'url', oninput: e => modelo[estado] = e.target.value })
+  );
+}
+
+function pintarEditor() {
+  const ed = $('editor'); ed.innerHTML = ''; $('zonaGuardar').hidden = false;
+  S.admin.forEach(h => {
+    const t = nodo('div', { className: 'tarjeta' }, nodo('h2', { textContent: h.nombre }));
+    h.modelos.forEach(m => {
+      const idNombre = 'n' + Math.random().toString(36).slice(2);
+      const quitar = nodo('button', { type: 'button', className: 'quitar', textContent: 'Quitar modelo' });
+      quitar.onclick = () => {
+        if (quitar.dataset.ok) { h.modelos = h.modelos.filter(x => x !== m); pintarEditor(); }
+        else { quitar.dataset.ok = 1; quitar.textContent = 'Toca otra vez para quitarlo'; }
+      };
+      t.append(nodo('div', { className: 'fila' },
+        nodo('label', { htmlFor: idNombre, textContent: 'Nombre del modelo' }),
+        nodo('input', { id: idNombre, type: 'text', value: m.nombre, oninput: e => m.nombre = e.target.value }),
+        campoEnlace(m, 'buen', 'Carpeta de buen estado'),
+        campoEnlace(m, 'mal', 'Carpeta de mal estado'),
+        quitar
+      ));
+    });
+    t.append(nodo('button', {
+      type: 'button', className: 'agregar', textContent: '+ Agregar modelo',
+      onclick: () => { h.modelos.push({ id: 'm' + Date.now(), nombre: 'Modelo ' + (h.modelos.length + 1), buen: '', mal: '' }); pintarEditor(); }
+    }));
+    ed.append(t);
+  });
+}
+
+$('guardar').onclick = async () => {
+  const b = $('guardar'); b.disabled = true; b.textContent = 'Comprobando carpetas…';
+  try {
+    const r = await llamar('guardarConfig', S.pin, S.admin);
+    if (r.ok) {
+      S.admin = await llamar('obtenerAdmin', S.pin); pintarEditor();
+      await cargar();
+      msj(`Guardado. ${r.enlaces} carpetas enlazadas.`, 'ok');
+    } else msj('No se guardó. Corrige esto:\n' + r.errores.join('\n'), 'mal');
+  } catch (e) { msj(e.message || String(e), 'mal'); }
+  b.disabled = false; b.textContent = 'Comprobar y guardar';
+};
+
+// ---- Arranque ----
+$('formApi').onsubmit = e => {
+  e.preventDefault(); urlApi = $('api').value.trim();
+  try { localStorage.setItem('urlApi', urlApi); } catch (err) {}
+  mostrar('inicio'); cargar();
+};
+if (!enAppsScript && !urlApi) mostrar('pedirApi');
+else {
+  if (!enAppsScript) { try { localStorage.setItem('urlApi', urlApi); } catch (err) {} }
+  cargar();
+}
+</script>
+</body>
+</html>
